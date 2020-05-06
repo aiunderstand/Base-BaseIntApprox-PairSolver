@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,8 +9,8 @@ using System.Numerics;
 [Serializable]
 class BigFloat : IComparable, IComparable<BigFloat>, IEquatable<BigFloat>
 {
-    private BigInteger numerator;
-    private BigInteger denominator;
+    public BigInteger numerator { get; set; }
+    public BigInteger denominator { get; set; }
 
     public static readonly BigFloat One = new BigFloat(1);
     public static readonly BigFloat Zero = new BigFloat(0);
@@ -307,13 +308,22 @@ class BigFloat : IComparable, IComparable<BigFloat>, IEquatable<BigFloat>
             return result.ToString();
 
         StringBuilder sb = new StringBuilder();
-
+       
         while (precision-- > 0 && decimals > 0)
         {
             sb.Append(decimals%10);
             decimals /= 10;
         }
 
+        ////SB edit: add missing leading zero's. Are they trimmed in the BigInteger methods?
+        if (decimals == 0 && precision >= 0)
+        {
+            while (precision-- > 0 )
+            {
+                sb.Append(0);
+            }
+        }
+        
         if (trailingZeros)
              return result + "." + new string(sb.ToString().Reverse().ToArray());
         else
