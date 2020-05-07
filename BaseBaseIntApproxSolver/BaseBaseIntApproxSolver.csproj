@@ -12,6 +12,8 @@
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -33,6 +35,14 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Math.Gmp.Native, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Math.Mpfr.Native.v2.0.build\Math.Gmp.Native.dll</HintPath>
+    </Reference>
+    <Reference Include="Math.Mpfr.Native, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Math.Mpfr.Native.v2.0.build\Math.Mpfr.Native.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
@@ -44,15 +54,44 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Libs\BigFloat.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="Libs\BigFloat.cs.meta" />
-    <None Include="Libs\copyright" />
-    <None Include="Libs\README.md" />
+    <None Include="Math.Mpfr.Native.v2.0.build\Mpfr.Native.chm" />
+    <None Include="Math.Mpfr.Native.v2.0.build\x64\GMP_COPYING" />
+    <None Include="Math.Mpfr.Native.v2.0.build\x64\GMP_README" />
+    <None Include="Math.Mpfr.Native.v2.0.build\x64\MPFR_COPYING" />
+    <None Include="Math.Mpfr.Native.v2.0.build\x64\MPFR_README" />
+    <None Include="Math.Mpfr.Native.v2.0.build\x86\GMP_COPYING" />
+    <None Include="Math.Mpfr.Native.v2.0.build\x86\GMP_README" />
+    <None Include="Math.Mpfr.Native.v2.0.build\x86\MPFR_COPYING" />
+    <None Include="Math.Mpfr.Native.v2.0.build\x86\MPFR_README" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Math.Mpfr.Native.v2.0.build\Math.Gmp.Native.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Math.Mpfr.Native.v2.0.build\Math.Gmp.Native.pdb" />
+    <Content Include="Math.Mpfr.Native.v2.0.build\Math.Gmp.Native.xml" />
+    <Content Include="Math.Mpfr.Native.v2.0.build\Math.Mpfr.Native.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Math.Mpfr.Native.v2.0.build\Math.Mpfr.Native.pdb" />
+    <Content Include="Math.Mpfr.Native.v2.0.build\Math.Mpfr.Native.xml" />
+    <Content Include="Math.Mpfr.Native.v2.0.build\x64\libgmp-10.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Math.Mpfr.Native.v2.0.build\x64\libmpfr-6.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Math.Mpfr.Native.v2.0.build\x86\libgmp-10.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Math.Mpfr.Native.v2.0.build\x86\libmpfr-6.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -1,31 +1,27 @@
-﻿using System;
+﻿using Math.Mpfr.Native;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Numerics;
 using System.Diagnostics;
-using System.Security.Cryptography.X509Certificates;
 
 class Program
 {
     //Author: Steven Bos - steven.bos@usn.no
     //License: MIT
 
-    //program to compute error between two bases, using extremely large floats (2^32)
+    //program to compute error between two bases that approximate each other with extreme precision
     //2DO:
     //     Add parallel computing or go to C with the fastest lib GNU MP bignum library
-    //     Unit test to known sequence, previous performance.
-    //     Refactor, replaced bigfloat lib with intx(it gives weird rounding errors after 3^10000)
+    //     Unit test to known sequence, compare to performance of other frameworks. see https://oeis.org/A005664/b005664.txt
 
     //v0.1 initial version
     //v0.2 removed magic number of resolution is now a variable
     //     created an API for generic base N, base M solving
-    //     fixed missing zero's after comma,but before first digit which made it seem the error was not converging
+    //     fixed missing zero's after comma,but before first digit which made it seem the error was not converging (this was due to 10^-n symbol missing)
     //     show the elapsed time in the prompt
     //     moved variable creation out of while loop to avoid garbage collection
     //     export to .csv file
-
+    //v0.3 refactor, replaced bigfloat lib with gmp (bigfloat lib gave weird rounding errors after 3^10000)
+    //     the gmp lib should be retrieved via nuget, but since it missed libmpfr-6.dll, a clone from github was retrieved and manually put in the root folder. this is a known issue.
     public static void Main(String[] args)
     {
         //settings
@@ -33,34 +29,59 @@ class Program
         int baseM = 2;
         string filePath = AppDomain.CurrentDomain.BaseDirectory + @"\results.csv";
         int StartIndex = 1; //start condition
-        int AmountOfPairs = 15; //stop condition
-        int Precision = 10; //default = 100, error resolution (digits behind comma)
+        int AmountOfPairs = 10; //stop condition
+        uint Precision = 100; //default = 100, error resolution (digits behind comma)
 
         //start
         Solve(baseN,baseM,StartIndex,AmountOfPairs, Precision, filePath);
     }
 
-    private static void Solve(int baseN, int baseM, int startIndex, int amountOfPairs, int precision, string filePath)
+    private static void Solve(int n, int m, int startIndex, int amountOfPairs, uint precision, string filePath)
     {
+        // Set default precision to 32 bits.
+        mpfr_lib.mpfr_set_default_prec(precision);
+
         //declare variables
-        BigFloat index = new BigFloat(startIndex);
         Stopwatch sw = new Stopwatch();
         List<BaseNNearestBaseMPairResult> Results = new List<BaseNNearestBaseMPairResult>();
         bool maxAmountOfPairs = false;
-        BigFloat smallestErrorFound = BigFloat.OneHalf; //max distance between two integers 
-        BigFloat baseNapproxWithBaseMOrig = new BigFloat(Math.Log(baseN, baseM));
-        BigFloat baseNapproxWithBaseM;
-        BigFloat NearestIntegerBaseNApproxWithBaseM;
-        BigFloat diff;
-        BigFloat error;
-      
+
+        mpfr_t index = startIndex.ToString();
+        mpfr_t smallestErrorFound = "0.5"; //max distance between two integers 
+
+        mpfr_t baseN = n.ToString();
+        mpfr_t logBaseN = new mpfr_t();
+        mpfr_lib.mpfr_init(logBaseN);
+        mpfr_lib.mpfr_log(logBaseN, baseN, mpfr_rnd_t.MPFR_RNDN);
+
+        mpfr_t baseM = m.ToString();
+        mpfr_t logBaseM = new mpfr_t();
+        mpfr_lib.mpfr_init(logBaseM);
+        mpfr_lib.mpfr_log(logBaseM, baseM, mpfr_rnd_t.MPFR_RNDN);
+
+        mpfr_t baseNapproxWithBaseMOrig = new mpfr_t();
+        mpfr_lib.mpfr_init(baseNapproxWithBaseMOrig);
+        mpfr_lib.mpfr_div(baseNapproxWithBaseMOrig, logBaseN, logBaseM, mpfr_rnd_t.MPFR_RNDN);
+
+        mpfr_t diff = new mpfr_t();
+        mpfr_lib.mpfr_init(diff);
+
+        mpfr_t error = new mpfr_t();
+        mpfr_lib.mpfr_init(error);
+
+        mpfr_t baseNapproxWithBaseM = new mpfr_t();
+        mpfr_lib.mpfr_init(baseNapproxWithBaseM);
+
+        mpfr_t NearestIntegerBaseNApproxWithBaseM = new mpfr_t();
+        mpfr_lib.mpfr_init(NearestIntegerBaseNApproxWithBaseM);
+        
         //write header of file
         using (System.IO.StreamWriter file =
             new System.IO.StreamWriter(filePath, true))
         {
             DateTime now = DateTime.Now;
             file.WriteLine(now.ToString("F"));
-            file.WriteLine(String.Format("base{0};base{1};distance;elapsed",baseN,baseM));
+            file.WriteLine(String.Format("base{0};base{1};distance;elapsed",n,m));
         }
 
         //start stopwatch
@@ -69,33 +90,30 @@ class Program
         while (maxAmountOfPairs == false)
         {
             //abs(5*log2(3) - round(5*log2(3)))
-            baseNapproxWithBaseM = new BigFloat(baseNapproxWithBaseMOrig * index) ;
-            NearestIntegerBaseNApproxWithBaseM = new BigFloat(baseNapproxWithBaseM).Round();
+            mpfr_lib.mpfr_mul(baseNapproxWithBaseM, baseNapproxWithBaseMOrig, index, mpfr_rnd_t.MPFR_RNDN);
+            mpfr_lib.mpfr_round(NearestIntegerBaseNApproxWithBaseM, baseNapproxWithBaseM);
+            mpfr_lib.mpfr_sub(diff, baseNapproxWithBaseM, NearestIntegerBaseNApproxWithBaseM, mpfr_rnd_t.MPFR_RNDN);
+            mpfr_lib.mpfr_abs(error, diff, mpfr_rnd_t.MPFR_RNDN);
 
-            diff = baseNapproxWithBaseM - NearestIntegerBaseNApproxWithBaseM;
-            error = BigFloat.Abs(diff); 
-            int test = error.CompareTo(smallestErrorFound);
+            int test = mpfr_lib.mpfr_cmp(error, smallestErrorFound);
 
             if (test < 0)
             {
-                smallestErrorFound = new BigFloat(error);
-                var errorString = error.ToString(precision);
+                mpfr_lib.mpfr_set(smallestErrorFound, error, mpfr_rnd_t.MPFR_RNDN);
 
-                if (index>1 && errorString.Equals("0"))
-                {
-                    throw new Exception("Loss of precision, increase precision");
-                }
-                else
-                {
-                    var result = new BaseNNearestBaseMPairResult(index.numerator,
-                        NearestIntegerBaseNApproxWithBaseM.numerator, errorString, sw.Elapsed);
+                var errorString = error.ToString();
+                var indexString = index.ToString();
+                var NearestIntegerBaseNApproxWithBaseMString = NearestIntegerBaseNApproxWithBaseM.ToString();
+
+                var result = new BaseNNearestBaseMPairResult(indexString,
+                    NearestIntegerBaseNApproxWithBaseMString, errorString, sw.Elapsed);
                     Results.Add(result);
 
                     Console.WriteLine(String.Format("{0}, Base{1}^{2}, NearestBase{3}^{4}, Error: {5}, Time: {6}",
                         (Results.Count),
-                        baseN,
+                        n,
                         result.baseNInt,
-                        baseM,
+                        m,
                         result.nearestBaseMInt,
                         result.errorString,
                         result.elapsed));
@@ -112,7 +130,6 @@ class Program
 
                         file.WriteLine(resultCsvFormat);
                     }
-                }
             }
 
             if (Results.Count == amountOfPairs)
@@ -123,9 +140,12 @@ class Program
             }
             else
             {
-                index++;
+                mpfr_lib.mpfr_add_si(index, index,1, mpfr_rnd_t.MPFR_RNDN);
             }
         }
+
+        //Release allocated memory for floating-point numbers.
+        mpfr_lib.mpfr_clears(index, smallestErrorFound, baseN, baseM, logBaseN, logBaseM, baseNapproxWithBaseMOrig, diff, error, baseNapproxWithBaseM, NearestIntegerBaseNApproxWithBaseM, null);
 
         Console.Read();
     }
@@ -133,12 +153,12 @@ class Program
 
 public struct BaseNNearestBaseMPairResult
 {
-    public BigInteger baseNInt;
-    public BigInteger nearestBaseMInt;
+    public string baseNInt;
+    public string nearestBaseMInt;
     public string errorString;
     public TimeSpan elapsed;
 
-    public BaseNNearestBaseMPairResult(BigInteger baseNInt, BigInteger nearestBaseMInt, string errorString, TimeSpan elapsed)
+    public BaseNNearestBaseMPairResult(string baseNInt, string nearestBaseMInt, string errorString, TimeSpan elapsed)
     {
         this.baseNInt = baseNInt;
         this.nearestBaseMInt = nearestBaseMInt;
